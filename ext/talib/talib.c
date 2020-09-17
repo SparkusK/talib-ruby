@@ -1,5 +1,5 @@
 #include "ruby.h"
-#include "ta_abstract.h"
+#include <ta-lib/ta_abstract.h>
 #include "ta_func.h"
 
 static VALUE rb_mTaLib;
@@ -295,6 +295,8 @@ static VALUE ta_func_setup_in_integer(VALUE self, VALUE param_index, VALUE in_ar
   ret_code = TA_SetInputParamIntegerPtr( param_holder->p, FIX2INT(param_index), (int*)(RARRAY_PTR(in_array)));
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetInputParamIntegerPtr");
+  
+  return T_TRUE;
 }
 
 /*
@@ -313,6 +315,8 @@ static VALUE ta_func_setup_in_real(VALUE self, VALUE param_index, VALUE in_array
   ret_code = TA_SetInputParamRealPtr( param_holder->p, FIX2INT(param_index), FLT2DBL(&dp[FIX2INT(param_index)], in_array));
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetInputParamRealPtr");
+  
+  return T_TRUE;
 }
 
 static VALUE ta_func_setup_in_price(VALUE self, VALUE param_index, VALUE in_open, VALUE in_high, VALUE in_low, VALUE in_close, VALUE in_volume, VALUE in_oi)
@@ -332,6 +336,8 @@ static VALUE ta_func_setup_in_price(VALUE self, VALUE param_index, VALUE in_open
                                       FLT2DBL(&dp[5], in_oi));
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetInputParamPricePtr");
+  
+  return T_TRUE;
 }
 
 /*
@@ -347,6 +353,8 @@ static VALUE ta_func_setup_opt_in_integer(VALUE self, VALUE param_index, VALUE v
   ret_code = TA_SetOptInputParamInteger( param_holder->p, FIX2INT(param_index), FIX2INT(val));
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetOptInputParamIntegerPtr");
+  
+  return val;
 }
 
 /*
@@ -363,6 +371,8 @@ static VALUE ta_func_setup_opt_in_real(VALUE self, VALUE param_index, VALUE val)
   ret_code = TA_SetOptInputParamReal( param_holder->p, FIX2INT(param_index), NUM2DBL(val));
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetOptInputParamRealPtr");
+  
+  return val;
 }
 
 /*
@@ -377,15 +387,20 @@ static VALUE ta_func_setup_out_real(VALUE self, VALUE param_index, VALUE out_arr
   long idx = FIX2INT(param_index);
   if (idx > 2)
     rb_raise(rb_eRuntimeError, "param_index must be 0..2");
+  
   Data_Get_Struct(self, ParamHolder, param_holder);
   rb_ary_store(rb_iv_get(self, "@result"), idx, out_array);
   // FIXME: malloc w/o free: johnribera@hotmail.com fixed
   double **dp = &(param_holder->out[idx]);
   if (*dp) free(*dp); // not true only 1st time called (reusing same ptrs)
+  
   *dp = (double*)malloc(RARRAY_LEN(out_array) * sizeof(double));
   ret_code = TA_SetOutputParamRealPtr(param_holder->p, idx, *dp);
+  
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetOutputParamRealPtr");
+  
+  return out_array;
 }
 
 static VALUE ta_func_setup_out_integer(VALUE self, VALUE param_index, VALUE out_array)
@@ -395,8 +410,10 @@ static VALUE ta_func_setup_out_integer(VALUE self, VALUE param_index, VALUE out_
   long idx = FIX2INT(param_index);
   if (idx > 2)
     rb_raise(rb_eRuntimeError, "param_index must be 0..2");
+  
   Data_Get_Struct(self, ParamHolder, param_holder);
   rb_ary_store(rb_iv_get(self, "@result"), idx, out_array);
+  
   // FIXME: malloc w/o free FIXED: johnribera@Hotmail.com
   int **ip = &(param_holder->out_int[idx]);
   if (*ip) free(*ip); // not true only very 1st time in
@@ -404,6 +421,8 @@ static VALUE ta_func_setup_out_integer(VALUE self, VALUE param_index, VALUE out_
   ret_code=TA_SetOutputParamIntegerPtr( param_holder->p, idx, *ip);
   if ( ret_code != TA_SUCCESS )
     rb_raise(rb_eRuntimeError, "unsuccess return code TA_SetOutputParamIntegerPtr");
+  
+  return out_array;
 }
 
 /*
@@ -532,7 +551,7 @@ void Init_talib()
   rb_struct_define("TA_IntegerList", "data", "nb_element", NULL );
 
   rb_sInParamInfo = rb_struct_define("TA_InputParameterInfo", "type", "param_name", "flags", NULL );
-  rb_sOptInParamInfo = rb_struct_define("TA_OutInputParameterInfo", "type", "param_name", "flags", "display_name", "data_set", "default_value", "hint", "help_file", NULL );
+  rb_sOptInParamInfo = rb_struct_define("TA_OptInputParameterInfo", "type", "param_name", "flags", "display_name", "data_set", "default_value", "hint", "help_file", NULL );
   rb_sOutParamInfo = rb_struct_define("TA_OutputParameterInfo", "type", "param_name", "flags", NULL );
 
   /*
