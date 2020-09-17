@@ -1,6 +1,6 @@
 #include "ruby.h"
 #include <ta-lib/ta_abstract.h>
-#include "ta_func.h"
+#include <ta-lib/ta_func.h>
 
 static VALUE rb_mTaLib;
 static VALUE rb_cTAFunction;
